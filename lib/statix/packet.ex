@@ -33,6 +33,21 @@ defmodule Statix.Packet do
     [header_as_bytes | built_packet]
   end
 
+  def build(prefix, :event, key, val, options) do
+    title_len = key |> String.length() |> Integer.to_string()
+    text_len = val |> String.length() |> Integer.to_string()
+
+    [prefix, "_e{", title_len, ",", text_len, "}:", key, "|", val]
+    |> set_ext_option("d", options[:timestamp])
+    |> set_ext_option("h", options[:hostname])
+    |> set_ext_option("k", options[:aggregation_key])
+    |> set_ext_option("p", options[:priority])
+    |> set_ext_option("s", options[:source_type_name])
+    |> set_ext_option("t", options[:alert_type])
+    |> set_option(:sample_rate, options[:sample_rate])
+    |> set_option(:tags, options[:tags])
+  end
+
   def build(prefix, name, key, val, options) do
     [prefix, key, ?:, val, ?|, metric_type(name)]
     |> set_option(:sample_rate, options[:sample_rate])
@@ -63,5 +78,13 @@ defmodule Statix.Packet do
 
   defp set_option(packet, :tags, tags) when is_list(tags) do
     [packet | ["|#", Enum.join(tags, ",")]]
+  end
+
+  defp set_ext_option(packet, _opt_key, nil) do
+    packet
+  end
+
+  defp set_ext_option(packet, opt_key, value) do
+    [packet | [?|, opt_key, ?:, to_string(value)]]
   end
 end
